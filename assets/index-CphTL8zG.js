@@ -62,14 +62,14 @@ const NAME = {
   label: "이름",
   name: "name",
   helpText: "",
-  required: "form-item--required",
+  required: true,
   type: "text"
 };
 const LINK = {
   label: "참고 링크",
   name: "link",
   helpText: "매장 정보를 확인할 수 있는 링크를 입력해 주세요.",
-  required: "",
+  required: false,
   type: "url"
 };
 const DESCRIPTION = {
@@ -238,7 +238,7 @@ function createHeader({ title }) {
   return header;
 }
 function createInput(fieldName) {
-  const input = `<div class="form-item ${fieldName.required}">
+  const input = `<div class="form-item ${fieldName.required ? "form-item--required" : ""}">
     <label for="${fieldName.name} text-caption">${fieldName.label}</label>
     <input type="${fieldName.type}" name="${fieldName.name}" id="${fieldName.name}">
     <span class="help-text text-caption">${fieldName.helpText}</span>
