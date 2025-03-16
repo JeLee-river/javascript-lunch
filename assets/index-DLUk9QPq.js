@@ -245,7 +245,7 @@ const store = {
     this.storage.removeItem(key);
   },
   checkValidKey(key) {
-    return this.storage.getItem(key) === null;
+    return this.storage.getItem(key) !== null;
   }
 };
 class DataService {
@@ -294,6 +294,9 @@ class DataService {
   getNewDataId() {
     const totalData = this.getDataList();
     return totalData.length;
+  }
+  checkHasKey() {
+    return store.checkValidKey(__privateGet(this, _key));
   }
 }
 _key = new WeakMap();
@@ -370,6 +373,9 @@ const restaurantService = {
     const updateData = { favorite: !targetData.favorite };
     this.updateRestaurant(id, updateData);
     return updateData.favorite;
+  },
+  checkHasRestaurantData() {
+    return this.restaurantManager.checkHasKey();
   }
 };
 const ADD_RESTAURANT_MODAL = {
@@ -740,8 +746,8 @@ function addEventHandlers() {
   deleteRestaurant(restaurantService.deleteRestaurant.bind(restaurantService), updateRestaurantElements);
 }
 function initRestaurantItems() {
-  const restaurants = restaurantService.getRestaurants();
-  if (!restaurants) {
+  const hasKey = restaurantService.checkHasRestaurantData();
+  if (!hasKey) {
     [...RESTAURANTS].forEach((restaurant) => {
       restaurantService.addRestaurant(restaurant);
     });
