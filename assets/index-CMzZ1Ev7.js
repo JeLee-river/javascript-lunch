@@ -777,6 +777,7 @@ function updateFavoriteIcon(id, favorite) {
   });
   const { isFavoriteTab } = stateStore.getState();
   if (isFavoriteTab) {
+    console.log("ssss");
     updateRestaurantElements();
   }
 }
