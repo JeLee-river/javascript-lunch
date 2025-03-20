@@ -89,7 +89,9 @@ function openRestaurantInfoModal(renderer) {
 }
 function resetForm() {
   const form = selectElement("#new-restaurant-form");
-  form.reset();
+  if (form instanceof HTMLFormElement) {
+    form.reset();
+  }
 }
 function closeModal() {
   const closeButtons = selectElements(".close-modal-button");
@@ -110,6 +112,9 @@ function closeModal() {
     const openedModals = [...selectElements(".modal--open")];
     if (event.key === "Escape" && openedModals.length > 0) {
       const targetModal = openedModals.pop();
+      if (!(targetModal instanceof HTMLDivElement)) {
+        return;
+      }
       resetForm();
       targetModal.classList.remove("modal--open");
     }
@@ -150,14 +155,16 @@ function deleteRestaurant(dataHandler, renderer) {
     renderer();
   };
   const deleteItemButton = selectElement(".delete-item-button");
-  deleteItemButton.addEventListener("click", handleDeleteClick);
+  if (deleteItemButton instanceof HTMLButtonElement) {
+    deleteItemButton.addEventListener("click", handleDeleteClick);
+  }
 }
 function switchTab(stateHandler, renderer) {
   let selected = selectElement(".selected");
   const handleTabClick = (event) => {
     const target = event.target;
-    const tab = target.classList.contains("tab");
-    if (!tab) {
+    const tab2 = target.classList.contains("tab");
+    if (!tab2) {
       return;
     }
     if (selected) {
@@ -185,13 +192,21 @@ function readNewRestaurant(dataHandler, renderer) {
   });
 }
 function extractFormData() {
-  return {
-    category: selectElement("#category").value,
-    name: selectElement("#name").value,
-    distance: Number(selectElement("#distance").value.replace("분 내", "")),
-    description: selectElement("#description").value,
-    link: selectElement("#link").value
-  };
+  const category = selectElement("#category");
+  const name = selectElement("#name");
+  const distance = selectElement("#distance");
+  const description = selectElement("#description");
+  const link = selectElement("#link");
+  if (category instanceof HTMLSelectElement && name instanceof HTMLInputElement && distance instanceof HTMLSelectElement && description instanceof HTMLTextAreaElement && link instanceof HTMLInputElement) {
+    return {
+      category: category.value,
+      name: name.value,
+      distance: Number(distance.value.replace("분 내", "")),
+      description: description.value,
+      link: link.value
+    };
+  }
+  throw new Error("form 요소의 값이 존재하지 않습니다.");
 }
 function toggleFavoriteButton(dataHandler, renderer) {
   const handleFavoriteClick = (event) => {
@@ -378,6 +393,217 @@ const restaurantService = {
     return this.restaurantManager.checkHasKey();
   }
 };
+const RESTAURANTS = [
+  {
+    id: 0,
+    category: "KOREAN",
+    name: "피양콩할마니",
+    distance: 10,
+    description: "평양 출신의 할머니가 수십 년간 운영해온 비지 전문점 피양콩 할마니. 두부를 빼지 않은 되비지를 맛볼 수 있는 곳으로, ‘피양’은 평안도 사투리로 ‘평양’을 의미한다. 딸과 함께 운영하는 이곳에선 맷돌로 직접 간 콩만을 사용하며, 일체의 조건강식을 선보인다. 콩비이곳의 대표메뉴지만, 할머니가 옛날만들어내는 비지전골 또한느낄 수 있는 특별한메뉴다. 반찬은 손님들이덜어 먹을 수 있게 준비돼 있다.",
+    link: "",
+    favorite: false
+  },
+  {
+    id: 1,
+    category: "CHINESE",
+    name: "친친",
+    distance: 5,
+    description: "Since 2004 편리한 교통과 주차, 그리고 관록만큼 깊은 맛과 정성으로 정통 중식의 세계를 펼쳐갑니다",
+    link: "",
+    favorite: false
+  },
+  {
+    id: 2,
+    category: "JAPANESE",
+    name: "잇쇼우",
+    distance: 10,
+    description: "잇쇼우는 정통 자가제면 사누끼 우동이 대표메뉴입니다. 기술은 정성을 이길 수 없다는 신념으로 모든 음식에 최선을 다하는 잇쇼우는 고객 한분 한분께 최선을 다하겠습니다",
+    link: "",
+    favorite: false
+  },
+  {
+    id: 3,
+    category: "WESTERN",
+    name: "이태리키친",
+    distance: 20,
+    description: "늘 변화를 추구하는 이태리키친입니다.",
+    link: "",
+    favorite: false
+  },
+  {
+    id: 4,
+    category: "ASIAN",
+    name: "호아빈 삼성점",
+    distance: 15,
+    description: "푸짐한 양에 국물이 일품인 쌀국수",
+    link: "",
+    favorite: false
+  },
+  {
+    id: 5,
+    category: "ETC",
+    name: "도스타코스 선릉점",
+    distance: 5,
+    description: "멕시칸 캐주얼 그릴",
+    link: "",
+    favorite: false
+  }
+];
+const header = {
+  render({ header: header2 }) {
+    renderElement("#app", header2, "afterbegin");
+  },
+  setEvent(eventHandlers) {
+    eventHandlers.forEach((eventHandler) => {
+      eventHandler();
+    });
+  }
+};
+const tab = {
+  render({ totalItemsTab, frequentItemsTab }) {
+    const div = document.createElement("div");
+    div.classList.add("tab-container");
+    renderElement("main", div, "afterbegin");
+    renderElement(".tab-container", totalItemsTab);
+    renderElement(".tab-container", frequentItemsTab);
+    const tabs = selectElements(".tab");
+    ["all", "favorite"].forEach((value, index) => {
+      tabs[index].dataset.tab = value;
+    });
+  },
+  setEvent(eventHandlers) {
+    eventHandlers.forEach((eventHandler) => {
+      eventHandler();
+    });
+  }
+};
+const restaurantItems = {
+  render({ restaurants }) {
+    const restaurantsContent = restaurants();
+    const ul = selectElement(".restaurant-list");
+    if (ul.hasChildNodes()) {
+      ul.replaceChildren();
+    }
+    renderElement(".restaurant-list", restaurantsContent);
+  },
+  setEvent(eventHandlers) {
+    eventHandlers.forEach((eventHandler) => {
+      eventHandler();
+    });
+  }
+};
+const itemsController = {
+  render({ categoryFilter, sortSelector }) {
+    const div = document.createElement("div");
+    div.classList.add("items-controller");
+    renderElement(".tab-container", div, "afterend");
+    renderElement(".items-controller", categoryFilter);
+    renderElement(".items-controller", sortSelector);
+  },
+  setEvent(eventHandlers) {
+    eventHandlers.forEach((eventHandler) => {
+      eventHandler();
+    });
+  }
+};
+const addRestaurantModal = {
+  render({ modalContainer, modalContents, modalButton }) {
+    this.renderContainer(modalContainer);
+    this.renderContents(modalContents);
+    this.renderButton(modalButton);
+  },
+  renderContainer(container) {
+    renderElement("main", container);
+    const h2 = document.createElement("h2");
+    h2.classList.add("modal-title", "text-title");
+    h2.textContent = "새로운 음식점";
+    const form = document.createElement("form");
+    form.id = "new-restaurant-form";
+    const selector = ".add-restaurant-modal > .modal-container";
+    renderElement(selector, h2);
+    renderElement(selector, form);
+  },
+  renderContents({ categorySelect, nameInput, distanceSelect, descriptionTextarea, linkInput }) {
+    const selector = "#new-restaurant-form";
+    renderElement(selector, categorySelect);
+    renderElement(selector, nameInput);
+    renderElement(selector, distanceSelect);
+    renderElement(selector, descriptionTextarea);
+    renderElement(selector, linkInput);
+  },
+  renderButton({ addButton, cancelButton }) {
+    const selector = "#new-restaurant-form";
+    const buttonDiv = document.createElement("div");
+    buttonDiv.classList.add("button-container");
+    renderElement(selector, buttonDiv);
+    renderElement(".button-container", cancelButton);
+    renderElement(".button-container", addButton);
+  },
+  setEvent(eventHandlers) {
+    eventHandlers.forEach((eventHandler) => {
+      eventHandler();
+    });
+  }
+};
+const restaurantInfoModal = {
+  render({ modalContainer, modalButton }) {
+    this.renderContainer(modalContainer);
+    this.renderButton(modalButton);
+  },
+  renderContainer(container) {
+    renderElement("main", container);
+  },
+  renderContents({ id, restaurantsInfo }) {
+    const contents = restaurantsInfo(id);
+    const targetModal = document.querySelector(".restaurant-info-modal > .modal-container");
+    const prevInformation = targetModal.querySelector(".restaurant");
+    if (prevInformation) {
+      targetModal.removeChild(prevInformation);
+    }
+    renderElement(".restaurant-info-modal > .modal-container", contents, "afterbegin");
+  },
+  renderButton({ deleteButton, closeButton }) {
+    const buttonDiv = document.createElement("div");
+    buttonDiv.classList.add("button-container");
+    buttonDiv.insertAdjacentHTML("beforeend", deleteButton);
+    buttonDiv.insertAdjacentHTML("beforeend", closeButton);
+    renderElement(".restaurant-info-modal > .modal-container", buttonDiv);
+  },
+  setEvent(eventHandlers) {
+    eventHandlers.forEach((eventHandler) => {
+      eventHandler();
+    });
+  }
+};
+function createButton(fieldName) {
+  const button = `<button type="${fieldName.type}" class="button ${fieldName.classNames.join(" ")} text-caption">${fieldName.content}</button>`;
+  return button;
+}
+function createHeader({ title }) {
+  const header2 = document.createElement("header");
+  header2.innerHTML = `<h1 class="gnb__title text-title">${title}</h1>
+    <button type="button" class="gnb__button" aria-label="음식점 추가">
+      <img src="./add-button.png" alt="음식점 추가" />
+    </button>`;
+  header2.classList.add("gnb");
+  return header2;
+}
+function createInput(fieldName) {
+  const input = `<div class="form-item ${fieldName.required ? "form-item--required" : ""}">
+    <label for="${fieldName.name} text-caption">${fieldName.label}</label>
+    <input type="${fieldName.type}" name="${fieldName.name}" id="${fieldName.name}">
+    <span class="help-text text-caption">${fieldName.helpText}</span>
+  </div>`;
+  return input;
+}
+function createModal({ classNames }) {
+  const modal = `<div class="modal ${classNames.join(" ")}">
+      <div class="modal-backdrop"></div>
+      <div class="modal-container">
+      </div>
+    </div>`;
+  return modal;
+}
 const ADD_RESTAURANT_MODAL = {
   classNames: ["add-restaurant-modal"]
 };
@@ -491,35 +717,6 @@ const SORT_SELECTOR = {
     ["distance", "거리순"]
   ])
 };
-function createButton(fieldName) {
-  const button = `<button type="${fieldName.type}" class="button ${fieldName.classNames.join(" ")} text-caption">${fieldName.content}</button>`;
-  return button;
-}
-function createHeader({ title }) {
-  const header = document.createElement("header");
-  header.innerHTML = `<h1 class="gnb__title text-title">${title}</h1>
-    <button type="button" class="gnb__button" aria-label="음식점 추가">
-      <img src="./add-button.png" alt="음식점 추가" />
-    </button>`;
-  header.classList.add("gnb");
-  return header;
-}
-function createInput(fieldName) {
-  const input = `<div class="form-item ${fieldName.required ? "form-item--required" : ""}">
-    <label for="${fieldName.name} text-caption">${fieldName.label}</label>
-    <input type="${fieldName.type}" name="${fieldName.name}" id="${fieldName.name}">
-    <span class="help-text text-caption">${fieldName.helpText}</span>
-  </div>`;
-  return input;
-}
-function createModal({ classNames }) {
-  const modal = `<div class="modal ${classNames.join(" ")}">
-      <div class="modal-backdrop"></div>
-      <div class="modal-container">
-      </div>
-    </div>`;
-  return modal;
-}
 function createRestaurantItem({ id, category, name, distance, description, favorite }) {
   const item = `<li class="restaurant" data-id="${id}">
               <div class="restaurant__category">
@@ -558,149 +755,7 @@ function createTextarea(fieldName) {
     </div>`;
   return textarea;
 }
-function renderHeader() {
-  const header = createHeader({ title: "점심 뭐 먹지" });
-  renderElement("#app", header, "afterbegin");
-}
-function renderTabs() {
-  const div = document.createElement("div");
-  div.classList.add("tab-container");
-  renderElement("main", div, "afterbegin");
-  const totalItemsTab = createButton(TOTAL_ITEMS_TAB);
-  const frequentItemsTab = createButton(FREQUENT_ITEMS_TAB);
-  renderElement(".tab-container", totalItemsTab);
-  renderElement(".tab-container", frequentItemsTab);
-  const tabs = selectElements(".tab");
-  ["all", "favorite"].forEach((value, index) => {
-    tabs[index].dataset.tab = value;
-  });
-}
-function renderItemsController() {
-  const div = document.createElement("div");
-  div.classList.add("items-controller");
-  renderElement(".tab-container", div, "afterend");
-  const categoryFilter = createSelect(CATEGORY_FILTER);
-  const sortSelector = createSelect(SORT_SELECTOR);
-  renderElement(".items-controller", categoryFilter);
-  renderElement(".items-controller", sortSelector);
-}
-function renderAddRestaurantModal() {
-  const modal = createModal(ADD_RESTAURANT_MODAL);
-  renderElement("main", modal);
-  const h2 = document.createElement("h2");
-  h2.classList.add("modal-title", "text-title");
-  h2.textContent = "새로운 음식점";
-  const form = document.createElement("form");
-  form.id = "new-restaurant-form";
-  const selector = ".add-restaurant-modal > .modal-container";
-  renderElement(selector, h2);
-  renderElement(selector, form);
-}
-function renderModalContents() {
-  const categorySelect = createSelect(CATEGORY);
-  const nameInput = createInput(NAME);
-  const distanceSelect = createSelect(DISTANCE);
-  const descriptionTextarea = createTextarea(DESCRIPTION);
-  const linkInput = createInput(LINK);
-  const selector = "#new-restaurant-form";
-  renderElement(selector, categorySelect);
-  renderElement(selector, nameInput);
-  renderElement(selector, distanceSelect);
-  renderElement(selector, descriptionTextarea);
-  renderElement(selector, linkInput);
-  renderModalButton(selector);
-}
-function renderModalButton(parent) {
-  const buttonDiv = document.createElement("div");
-  buttonDiv.classList.add("button-container");
-  renderElement(parent, buttonDiv);
-  const addButton = createButton(ADD_BUTTON);
-  const cancelButton = createButton(CANCEL_BUTTON);
-  renderElement(".button-container", cancelButton);
-  renderElement(".button-container", addButton);
-}
-function renderRestaurantItems(restaurants) {
-  const ul = selectElement(".restaurant-list");
-  const items = restaurants.map((restaurant) => createRestaurantItem(restaurant)).join("");
-  if (ul.hasChildNodes()) {
-    ul.replaceChildren();
-  }
-  renderElement(".restaurant-list", items);
-}
-function renderRestaurantInfo() {
-  const modal = createModal(RESTAURANT_INFO_MODAL);
-  renderElement("main", modal);
-  renderInfoModalButton();
-}
-function renderInfoModalButton() {
-  const buttonDiv = document.createElement("div");
-  buttonDiv.classList.add("button-container");
-  const closeInfoButton = createButton(CLOSE_INFO_BUTTON);
-  const deleteInfoButton = createButton(DELETE_INFO_BUTTON);
-  buttonDiv.insertAdjacentHTML("beforeend", deleteInfoButton);
-  buttonDiv.insertAdjacentHTML("beforeend", closeInfoButton);
-  renderElement(".restaurant-info-modal > .modal-container", buttonDiv);
-}
-function setRequired(element) {
-  element.required = true;
-}
-const RESTAURANTS = [
-  {
-    id: 0,
-    category: "KOREAN",
-    name: "피양콩할마니",
-    distance: 10,
-    description: "평양 출신의 할머니가 수십 년간 운영해온 비지 전문점 피양콩 할마니. 두부를 빼지 않은 되비지를 맛볼 수 있는 곳으로, ‘피양’은 평안도 사투리로 ‘평양’을 의미한다. 딸과 함께 운영하는 이곳에선 맷돌로 직접 간 콩만을 사용하며, 일체의 조건강식을 선보인다. 콩비이곳의 대표메뉴지만, 할머니가 옛날만들어내는 비지전골 또한느낄 수 있는 특별한메뉴다. 반찬은 손님들이덜어 먹을 수 있게 준비돼 있다.",
-    link: "",
-    favorite: false
-  },
-  {
-    id: 1,
-    category: "CHINESE",
-    name: "친친",
-    distance: 5,
-    description: "Since 2004 편리한 교통과 주차, 그리고 관록만큼 깊은 맛과 정성으로 정통 중식의 세계를 펼쳐갑니다",
-    link: "",
-    favorite: false
-  },
-  {
-    id: 2,
-    category: "JAPANESE",
-    name: "잇쇼우",
-    distance: 10,
-    description: "잇쇼우는 정통 자가제면 사누끼 우동이 대표메뉴입니다. 기술은 정성을 이길 수 없다는 신념으로 모든 음식에 최선을 다하는 잇쇼우는 고객 한분 한분께 최선을 다하겠습니다",
-    link: "",
-    favorite: false
-  },
-  {
-    id: 3,
-    category: "WESTERN",
-    name: "이태리키친",
-    distance: 20,
-    description: "늘 변화를 추구하는 이태리키친입니다.",
-    link: "",
-    favorite: false
-  },
-  {
-    id: 4,
-    category: "ASIAN",
-    name: "호아빈 삼성점",
-    distance: 15,
-    description: "푸짐한 양에 국물이 일품인 쌀국수",
-    link: "",
-    favorite: false
-  },
-  {
-    id: 5,
-    category: "ETC",
-    name: "도스타코스 선릉점",
-    distance: 5,
-    description: "멕시칸 캐주얼 그릴",
-    link: "",
-    favorite: false
-  }
-];
-function createRestaurantInfo({ id, category, name, distance, description, favorite }) {
+function createRestaurantInfo({ id, category, name, distance, description, link, favorite }) {
   const information = `<div class="restaurant restaurant__body" data-id="${id}">
                 <div class="restaurant__category">
                   <img src="${IMAGE.get(category)}" alt="${category}" class="category-icon" />
@@ -712,64 +767,136 @@ function createRestaurantInfo({ id, category, name, distance, description, favor
                 <h3 class="restaurant__name text-subtitle">${name}</h3>
                 <span class="restaurant__distance text-body">캠퍼스부터 ${distance}분 내</span>
                 <p class="restaurant__description__details text-body">${description}</p>
+                <a href="${link}" class="restaurant__link text-body">${link}</a>
               </div>
             </div>
             `;
   return information;
 }
 addEventListener("load", () => {
-  renderHeader();
-  renderTabs();
-  renderItemsController();
-  initRestaurantItems();
-  updateRestaurantElements();
-  renderAddRestaurantModal();
-  renderModalContents();
-  renderRestaurantInfo();
-  const nameInputElement = selectElement("#name");
-  const categorySelectElement = selectElement("#category");
-  const distanceSelectElement = selectElement("#distance");
-  setRequired(nameInputElement);
-  setRequired(categorySelectElement);
-  setRequired(distanceSelectElement);
-  addEventHandlers();
-});
-function addEventHandlers() {
-  openAddRestaurantModal();
-  openRestaurantInfoModal(renderRestaurantInfoContents);
-  readNewRestaurant(restaurantService.addRestaurant.bind(restaurantService), updateRestaurantElements);
+  handleAddRestaurantModal();
+  handleRestaurantInfoModal();
   closeModal();
-  switchTab(stateStore.updateState.bind(stateStore), updateRestaurantElements);
-  selectSortKey(stateStore.updateState.bind(stateStore), updateRestaurantElements);
-  selectCategory(stateStore.updateState.bind(stateStore), updateRestaurantElements);
-  toggleFavoriteButton(restaurantService.toggleFavorite.bind(restaurantService), updateFavoriteIcon);
-  deleteRestaurant(restaurantService.deleteRestaurant.bind(restaurantService), updateRestaurantElements);
-}
-function initRestaurantItems() {
+  handleHeader();
+  handleTab();
+  handleItemsController();
+  handleRestaurantItems();
+});
+const handleAddRestaurantModal = () => {
+  addRestaurantModal.render({
+    modalContainer: createModal(ADD_RESTAURANT_MODAL),
+    modalContents: {
+      categorySelect: createSelect(CATEGORY),
+      nameInput: createInput(NAME),
+      distanceSelect: createSelect(DISTANCE),
+      descriptionTextarea: createTextarea(DESCRIPTION),
+      linkInput: createInput(LINK)
+    },
+    modalButton: {
+      addButton: createButton(ADD_BUTTON),
+      cancelButton: createButton(CANCEL_BUTTON)
+    }
+  });
+  addRestaurantModal.setEvent([
+    initFormValidation,
+    () => readNewRestaurant(
+      restaurantService.addRestaurant.bind(restaurantService),
+      () => restaurantItems.render({
+        restaurants: () => filterAndSortRestaurants()
+      })
+    )
+  ]);
+};
+const handleRestaurantInfoModal = () => {
+  restaurantInfoModal.render({
+    modalContainer: createModal(RESTAURANT_INFO_MODAL),
+    modalButton: {
+      deleteButton: createButton(DELETE_INFO_BUTTON),
+      closeButton: createButton(CLOSE_INFO_BUTTON)
+    }
+  });
+  restaurantInfoModal.setEvent([
+    () => {
+      const modalContents = (id) => {
+        const targetData = restaurantService.getRestaurantById(id);
+        return createRestaurantInfo(targetData);
+      };
+      const renderer = (id) => restaurantInfoModal.renderContents({ id, restaurantsInfo: modalContents });
+      openRestaurantInfoModal(renderer);
+    },
+    () => deleteRestaurant(
+      restaurantService.deleteRestaurant.bind(restaurantService),
+      () => restaurantItems.render({
+        restaurants: () => filterAndSortRestaurants()
+      })
+    )
+  ]);
+};
+const handleHeader = () => {
+  header.render({ header: createHeader({ title: "점심 뭐 먹지" }) });
+  header.setEvent([openAddRestaurantModal]);
+};
+const handleTab = () => {
+  tab.render({
+    totalItemsTab: createButton(TOTAL_ITEMS_TAB),
+    frequentItemsTab: createButton(FREQUENT_ITEMS_TAB)
+  });
+  tab.setEvent([
+    () => switchTab(
+      stateStore.updateState.bind(stateStore),
+      () => restaurantItems.render({
+        restaurants: () => filterAndSortRestaurants()
+      })
+    )
+  ]);
+};
+const handleItemsController = () => {
+  itemsController.render({
+    categoryFilter: createSelect(CATEGORY_FILTER),
+    sortSelector: createSelect(SORT_SELECTOR)
+  });
+  itemsController.setEvent([
+    () => selectSortKey(
+      stateStore.updateState.bind(stateStore),
+      () => restaurantItems.render({
+        restaurants: () => filterAndSortRestaurants()
+      })
+    ),
+    () => selectCategory(
+      stateStore.updateState.bind(stateStore),
+      () => restaurantItems.render({
+        restaurants: () => filterAndSortRestaurants()
+      })
+    )
+  ]);
+};
+const handleRestaurantItems = () => {
+  initRestaurantItems();
+  restaurantItems.render({
+    restaurants: () => {
+      const restaurantsData = restaurantService.getRestaurants();
+      return restaurantsData.map((restaurant) => createRestaurantItem(restaurant)).join("");
+    }
+  });
+  restaurantItems.setEvent([
+    () => toggleFavoriteButton(restaurantService.toggleFavorite.bind(restaurantService), updateFavoriteIcon)
+  ]);
+};
+const initRestaurantItems = () => {
   const hasKey = restaurantService.checkHasRestaurantData();
   if (!hasKey) {
     [...RESTAURANTS].forEach((restaurant) => {
       restaurantService.addRestaurant(restaurant);
     });
   }
-}
-function updateRestaurantElements() {
+};
+const filterAndSortRestaurants = () => {
   const states = stateStore.getState();
-  const restaurants = restaurantService.getRestaurants();
-  const filteredRestaurants = restaurantService.getFilteredRestaurants(states, restaurants);
-  renderRestaurantItems(filteredRestaurants);
-}
-function renderRestaurantInfoContents(id) {
-  const targetData = restaurantService.getRestaurantById(id);
-  const contents = createRestaurantInfo(targetData);
-  const targetModal = document.querySelector(".restaurant-info-modal > .modal-container");
-  const prevInformation = targetModal.querySelector(".restaurant");
-  if (prevInformation) {
-    targetModal.removeChild(prevInformation);
-  }
-  renderElement(".restaurant-info-modal > .modal-container", contents, "afterbegin");
-}
-function updateFavoriteIcon(id, favorite) {
+  const restaurantsData = restaurantService.getRestaurants();
+  const filteredData = restaurantService.getFilteredRestaurants(states, restaurantsData);
+  return filteredData.map((restaurant) => createRestaurantItem(restaurant)).join("");
+};
+const updateFavoriteIcon = (id, favorite) => {
   const targetItems = document.querySelectorAll(`[data-id="${id}"]`);
   targetItems.forEach((target) => {
     const imageElement = target.querySelector(".restaurant__favorite > img");
@@ -777,7 +904,19 @@ function updateFavoriteIcon(id, favorite) {
   });
   const { isFavoriteTab } = stateStore.getState();
   if (isFavoriteTab) {
-    console.log("ssss");
-    updateRestaurantElements();
+    restaurantItems.render({
+      restaurants: () => filterAndSortRestaurants()
+    });
   }
-}
+};
+const initFormValidation = () => {
+  const nameInputElement = selectElement("#name");
+  const categorySelectElement = selectElement("#category");
+  const distanceSelectElement = selectElement("#distance");
+  setRequired(nameInputElement);
+  setRequired(categorySelectElement);
+  setRequired(distanceSelectElement);
+};
+const setRequired = (element) => {
+  element.required = true;
+};
